@@ -1,22 +1,22 @@
 <?php
 
 $URL_API = "https://api.pix.basspago.com.br";
-$SENHA_CASH_IN = "COLOQUE_SUA_NOVA_SENHA_AQUI";
-$CLIENT_ID = "COLOQUE_SEU_NOVO_CLIENT_ID_AQUI";
-$CLIENT_SECRET = "COLOQUE_SEU_NOVO_CLIENT_SECRET_AQUI";
-
-$CHAVE_PIX = "COLOQUE_SUA_CHAVE_PIX_AQUI";
-
+$SENHA_CASH_IN = "d.WWxgdpH_r3nv2HCMJcYxH-K8xkJqPJJuAH7V2Tp2CNbugdDWc!nbvH7a2X";
+$CLIENT_ID = "00011193760124794000127";
+$CLIENT_SECRET = "mNhMDcwNTItYTc4Ni00MjE1LThlOGEtZ";
+ 
+$CHAVE_PIX = "fcd47d4c-bd68-440a-8480-9c5a6c184abc";
+ 
 // ── Facebook Conversions API ──────────────────────────────────────────────────
-$FB_PIXEL_ID      = "COLOQUE_SEU_PIXEL_ID_AQUI";
-$FB_ACCESS_TOKEN  = "COLOQUE_SEU_NOVO_TOKEN_AQUI";
-
+$FB_PIXEL_ID      = "1520472869160223";
+$FB_ACCESS_TOKEN  = "EAASgeovzo6wBSBf22mtIitPIzP59EXMZBB1rc093X5iAWJZCMwIRW6bS7tMzjp09sVIuBSmtdCNWgrMimhJc1cMKCYrFTZCTNt39RVJqjxfHQcTssNnq0k3b51pJfjUrYsy7a2O1kupfyBm7IjxyJVztIH1lEtncx8EFUE7F1L1Pn47EHUgTQOZBmVFCsQZDZD";
+ 
 // ── UTMify ────────────────────────────────────────────────────────────────────
-$UTMIFY_API_TOKEN = "COLOQUE_SEU_NOVO_TOKEN_AQUI";
+$UTMIFY_API_TOKEN = "3K02ny3fWCrqJ6ZPHsE52YSZnR25qhWRjcj5";
 $NOME_PRODUTO = "Produto Digital";
 $ID_PRODUTO   = "produto-001";
-
-$API_KEY = "COLOQUE_SUA_NOVA_API_KEY_AQUI";
+ 
+$API_KEY = "a4f5d95862b7c5238cd957db82b3482e0b7de358fe65c50f5c6d08985f85dd3c";
 
 // ── Upstash Redis (armazenamento de transações PIX — necessário na Vercel) ────
 // Crie uma conta grátis em https://upstash.com, crie um banco Redis
