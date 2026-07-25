@@ -14,24 +14,19 @@
   t.src=v;s=b.getElementsByTagName(e)[0];
   s.parentNode.insertBefore(t,s)}(window, document,'script',
   'https://connect.facebook.net/en_US/fbevents.js');
-
   fbq('init', '1520472869160223');
   fbq('track', 'InitiateCheckout');
  </script>
-
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f5f5f5; min-height: 100vh; display: flex; justify-content: center; }
     .page { background: #fff; width: 100%; max-width: 420px; min-height: 100vh; padding: 2rem 1.25rem 3rem; }
-
     h1 { font-size: 1.5rem; font-weight: 700; text-align: center; margin-bottom: .25rem; }
     .subtitle { color: #888; font-size: .9rem; text-align: center; margin-bottom: 1.5rem; }
-
     .grid-valores { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; margin-bottom: 1rem; }
     .btn-valor { padding: .75rem .5rem; border: 1.5px solid  #ddd; border-radius: 24px; background: #fff; font-size: .95rem; font-weight: 600; cursor: pointer; transition: all .15s; }
     .btn-valor.ativo { border-color: #00a86b; background: #f0faf5; color: #00a86b; }
     .btn-valor.full  { grid-column: 1 / -1; }
-
     .upsell {
       border: none;
       border-radius: 16px;
@@ -50,7 +45,6 @@
       padding: .35rem .8rem; border-radius: 20px; display: inline-block;
     }
     .upsell-extra { font-size: .88rem; color: #222; font-weight: 800; }
-
     .produtos-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: .5rem; }
     .produto-card {
       text-align: center; cursor: pointer; border: 2px solid transparent;
@@ -61,7 +55,6 @@
     .produto-emoji { font-size: 2.2rem; display: block; margin-bottom: .3rem; line-height: 1; }
     .produto-nome  { font-size: .62rem; font-weight: 800; color: #222; text-transform: uppercase; margin-bottom: .25rem; line-height: 1.25; }
     .produto-preco { font-size: .75rem; color: #00a86b; font-weight: 800; }
-
     .total-area {
       background: #e0e0e0;
       border-radius: 20px;
@@ -94,7 +87,6 @@
     }
     .btn-comprar:hover { background: #00935d; }
     .btn-comprar:disabled { opacity: .6; }
-
     .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 10; align-items: flex-end; justify-content: center; }
     .overlay.ativo { display: flex; }
     .modal { background: #fff; width: 100%; max-width: 420px; border-radius: 20px 20px 0 0; padding: 1.75rem 1.25rem 2.5rem; }
@@ -114,10 +106,8 @@
     .btn-modal-pix { width: 100%; padding: 1rem; background: #00a86b; color: #fff; border: none; border-radius: 50px; font-size: 1rem; font-weight: 700; cursor: pointer; margin-bottom: .75rem; }
     .btn-modal-pix:disabled { opacity: .6; }
     .btn-cancelar { display: block; width: 100%; text-align: center; background: none; border: none; color: #888; font-size: .9rem; cursor: pointer; padding: .5rem; }
-
     .spinner { display: inline-block; width: 16px; height: 16px; border: 3px solid rgba(255,255,255,.35); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: .3rem; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
     #tela-qrcode { display: none; text-align: center; padding-top: 2rem; }
     #tela-qrcode h2   { font-size: 1.2rem; margin-bottom: .3rem; }
     #tela-qrcode .sub { color: #888; font-size: .85rem; margin-bottom: 1.25rem; }
@@ -127,7 +117,6 @@
     .btn-copiar   { width: 100%; padding: .7rem; background: #fff; border: 1.5px solid #00a86b; border-radius: 50px; color: #00a86b; font-weight: 700; font-size: .95rem; cursor: pointer; margin-bottom: .6rem; }
     .btn-verificar{ width: 100%; padding: .7rem; background: #f0faf5; border: none; border-radius: 50px; color: #00a86b; font-weight: 700; font-size: .95rem; cursor: pointer; }
     .btn-verificar:disabled { opacity: .6; }
-
     #tela-obrigado { display: none; flex-direction: column; align-items: center; text-align: center; padding-top: 5rem; }
     .check-grande { font-size: 4.5rem; margin-bottom: 1rem; }
     #tela-obrigado h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: .5rem; }
@@ -142,9 +131,7 @@
   <div id="tela-selecao">
     <h1>Ajude Wesley, de 23 anos, a realizar o sonho de tornar-se médico e salvar vidas</h1>
     <p class="subtitle">Qual valor você deseja doar?</p>
-
     <div class="grid-valores" id="grid-valores"></div>
-
     <div class="upsell">
       <div class="upsell-header">
         <div class="upsell-left">
@@ -155,7 +142,6 @@
       </div>
       <div class="produtos-grid" id="produtos-grid"></div>
     </div>
-
     <div class="total-area">
       <p class="total-label">Ajude com o valor que seu coração mandar 💚</p>
       <div class="total-valor-box">
@@ -164,7 +150,6 @@
       <button class="btn-comprar" id="btn-comprar">CONTRIBUIR</button>
     </div>
   </div>
-
   <div class="overlay" id="overlay-bonus">
     <div class="modal">
       <h2>Identificação 💚</h2>
@@ -185,7 +170,6 @@
       <button class="btn-cancelar"  id="btn-cancelar">Cancelar</button>
     </div>
   </div>
-
   <div id="tela-qrcode">
     <h2>Escaneie o QR Code</h2>
     <p class="sub">Abra o app do seu banco e pague via PIX</p>
@@ -195,31 +179,23 @@
     <button class="btn-copiar"    id="btn-copiar">Copiar código</button>
     <button class="btn-verificar" id="btn-verificar">Verificar pagamento</button>
   </div>
-
   <div id="tela-obrigado">
     <span class="check-grande">✅</span>
     <h2>Obrigado!</h2>
     <p>Sua contribuição foi confirmada💚!</p>
   </div>
-
 </div>
-
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
-
   const PLANOS = [30, 50, 70, 100, 150, 200, 500];
-
   const PRODUTOS = [
     { id: 'p1', nome: 'CESTA BÁSICA',     emoji: '<img src="./images/4adfc1544ffa389f.jpg"  style="width:1em;height:1em;">', preco: 65.00 },
     { id: 'p2', nome: 'AUXÍLIO GÁS', emoji: '<img src="./images/af65fdfc85a6bc7c.avif" style="width:1em;height:1em;">', preco: 29.90 },
     { id: 'p3', nome: 'MEDICAMENTOS',     emoji: '<img src="./images/4adfc1544ffa389f.jpg" style="width:1em;height:1em;">', preco: 39.70 },
   ];
-
-
   let valorBase   = 20;
   let extraUpsell = 0;
   let txidAtual   = null;
-
   const gridValores = document.getElementById('grid-valores');
   PLANOS.forEach((v, i) => {
     const btn = document.createElement('button');
@@ -233,7 +209,6 @@
     });
     gridValores.appendChild(btn);
   });
-
   const produtosGrid = document.getElementById('produtos-grid');
   PRODUTOS.forEach(p => {
     const card = document.createElement('div');
@@ -252,7 +227,6 @@
     });
     produtosGrid.appendChild(card);
   });
-
   document.getElementById('check-upsell').addEventListener('change', e => {
     if (!e.target.checked) {
       document.querySelectorAll('.produto-card.selecionado').forEach(c => c.classList.remove('selecionado'));
@@ -260,7 +234,6 @@
       atualizarTotal();
     }
   });
-
   function recalcularUpsell() {
     extraUpsell = 0;
     document.querySelectorAll('.produto-card.selecionado').forEach(c => {
@@ -268,41 +241,33 @@
     });
     atualizarTotal();
   }
-
   function atualizarTotal() {
     const total = valorBase + extraUpsell;
     document.getElementById('total-input').value       = total.toFixed(2).replace('.', ',');
     document.getElementById('upsell-extra').textContent  = '+R$ ' + extraUpsell.toFixed(2).replace('.', ',');
   }
-
   document.getElementById('total-input').addEventListener('input', e => {
     const val = parseFloat(e.target.value.replace(',', '.'));
     if (!isNaN(val) && val > 0) {
       valorBase = val - extraUpsell;
     }
   });
-
   document.getElementById('btn-comprar').addEventListener('click', () => {
     document.getElementById('overlay-bonus').classList.add('ativo');
   });
-
   document.getElementById('toggle-grupo').addEventListener('change', function () {
     document.getElementById('campos-novo').style.display = this.checked ? 'none' : 'flex';
   });
-
   document.getElementById('btn-cancelar').addEventListener('click', () => {
     document.getElementById('overlay-bonus').classList.remove('ativo');
   });
-
   document.getElementById('btn-gerar-pix').addEventListener('click', async () => {
     const btn   = document.getElementById('btn-gerar-pix');
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span> Gerando...';
-
     const total = valorBase + extraUpsell;
-
     try {
-      const r = await fetch('gerar_pix.php', {
+      const r = await fetch('/api/gerar_pix.php', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -315,19 +280,15 @@
       });
       const data = await r.json();
       if (!r.ok || data.erro) throw new Error(data.erro || 'Erro ' + r.status);
-
       txidAtual = data.txid;
       const codigo = data.pixCopiaECola || data._raw?.pixCopiaECola || '';
-
       document.getElementById('codigo-pix').textContent = codigo || '—';
       document.getElementById('qrcode-img').innerHTML   = '';
       if (codigo)
         new QRCode(document.getElementById('qrcode-img'), { text: codigo, width: 220, height: 220 });
-
       document.getElementById('overlay-bonus').classList.remove('ativo');
       mostrarTela('tela-qrcode');
       fbInitiateCheckout(total);
-
     } catch (err) {
       alert('Erro: ' + err.message);
     } finally {
@@ -335,7 +296,6 @@
       btn.textContent = 'Gerar PIX agora';
     }
   });
-
   document.getElementById('btn-copiar').addEventListener('click', () => {
     const texto = document.getElementById('codigo-pix').textContent;
     navigator.clipboard.writeText(texto).then(() => {
@@ -344,15 +304,13 @@
       setTimeout(() => { b.textContent = 'Copiar código'; }, 2000);
     });
   });
-
   document.getElementById('btn-verificar').addEventListener('click', async () => {
     if (!txidAtual) return;
     const btn   = document.getElementById('btn-verificar');
     btn.disabled = true;
     btn.textContent = 'Verificando...';
-
     try {
-      const r    = await fetch('verificar_pagamento.php?txid=' + encodeURIComponent(txidAtual));
+      const r    = await fetch('/api/verificar_pagamento.php?txid=' + encodeURIComponent(txidAtual));
       const data = await r.json();
       if (data.status === 'paid') {
         fbPurchase(valorBase + extraUpsell, txidAtual);
@@ -367,15 +325,12 @@
       btn.textContent = 'Verificar pagamento';
     }
   });
-
   function mostrarTela(id) {
     ['tela-selecao', 'tela-qrcode', 'tela-obrigado'].forEach(t => {
       const el = document.getElementById(t);
       el.style.display = t === id ? (t === 'tela-obrigado' ? 'flex' : 'block') : 'none';
     });
   }
-
-
   function getUTMs() {
     const p    = new URLSearchParams(window.location.search);
     const keys = ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'];
@@ -385,26 +340,20 @@
     const saved = sessionStorage.getItem('_utms');
     return saved ? JSON.parse(saved) : out;
   }
-
   function getCookie(name) {
     const m = document.cookie.match('(?:^|;)\\s*' + name + '=([^;]*)');
     return m ? decodeURIComponent(m[1]) : '';
   }
-
-
 function fbInitiateCheckout(valor) {
   if (typeof fbq === 'undefined') return;
-
   fbq('track', 'InitiateCheckout', {
     currency: 'BRL',
     value: valor,
     num_items: 1
   });
 }
-
 function fbPurchase(valor, txid) {
   if (typeof fbq === 'undefined') return;
-
   fbq('track', 'Purchase', {
     currency: 'BRL',
     value: valor,
@@ -415,8 +364,6 @@ function fbPurchase(valor, txid) {
     eventID: txid 
   });
 }
-
-
 </script>
 </body>
 </html>
