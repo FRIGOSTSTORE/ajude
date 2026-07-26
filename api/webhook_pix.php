@@ -3,9 +3,9 @@
  * webhook_pix.php — Recebe notificações do BASSPAGO quando um PIX é pago.
  *
  * Configure esta URL no painel do BASSPAGO:
- *   PUT /webhook/{chave}  →  webhookUrl: "https://seudominio.com/apipix/webhook_pix.php"
+ *   PUT /webhook/{chave}  →  webhookUrl: "https://ajude-seven.vercel.app/api/webhook_pix.php"
  *
- * Payload recebido:
+ * Payload esperado (padrão Bacen):
  * {
  *   "pix": [
  *     {
@@ -34,9 +34,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $raw = file_get_contents('php://input');
 
-// Loga o payload bruto para debug — vai para os Logs da Vercel (Functions → Logs),
-// já que não há mais disco persistente para gravar um .txt.
-error_log('[webhook_pix] ' . $raw);
+// ── DEBUG: salva o payload bruto no Upstash para inspeção manual ─────────────
+// Acesse /api/ver_debug.php depois de um pagamento para ver exatamente o que
+// o BASSPAGO enviou. Remova este bloco (e o ver_debug.php) depois de resolver.
+try {
+    (new TransactionStore())->salvar('debug_last_webhook', [
+        'recebidoEm' => date('Y-m-d H:i:s'),
+        'raw'        => $raw,
+    ]);
+} catch (Throwable $e) {
+    // ignora falha de debug, não deve travar o processamento real
+}
 
 $payload = json_decode($raw, true);
 
@@ -57,7 +65,6 @@ foreach ($payload['pix'] as $pix) {
     try {
         $txData = $store->carregar($txid);
     } catch (Throwable $e) {
-        error_log('[webhook_pix] falha ao carregar transação: ' . $e->getMessage());
         $txData = [];
     }
 
@@ -79,7 +86,7 @@ foreach ($payload['pix'] as $pix) {
     try {
         $store->salvar($txid, array_merge($txData, ['status' => 'paid', 'paidAt' => $data['paidAt']]));
     } catch (Throwable $e) {
-        error_log('[webhook_pix] falha ao salvar transação paga: ' . $e->getMessage());
+        // segue mesmo assim
     }
 }
 
