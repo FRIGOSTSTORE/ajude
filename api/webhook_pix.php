@@ -5,18 +5,18 @@
  * Configure esta URL no painel do BASSPAGO:
  *   PUT /webhook/{chave}  →  webhookUrl: "https://ajude-seven.vercel.app/api/webhook_pix.php"
  *
- * Payload esperado (padrão Bacen):
+ * Formato real observado (payload vem direto na raiz, sem wrapper "pix"):
  * {
- *   "pix": [
- *     {
- *       "endToEndId": "E1234...",
- *       "txid":       "cd1fe328...",
- *       "valor":      "100.00",
- *       "horario":    "2024-01-01T12:00:00.000Z",
- *       "infoPagador": "..."
- *     }
- *   ]
+ *   "endToEndId":      "E1234...",
+ *   "valor":           "0.50",
+ *   "horario":         "2026-07-26T16:24:54.699Z",
+ *   "componentesValor":{ "original": { "valor": "0.50" } },
+ *   "txid":            "54c3d1dcfb4fa287624c657d5d4283",
+ *   "pagador":         { "nome": "...", "cpf": "..." }
  * }
+ *
+ * Mantemos compatibilidade com o formato alternativo { "pix": [ {...}, {...} ] },
+ * caso o BASSPAGO envie assim em outras situações (ex: múltiplos PIX de uma vez).
  */
 
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
@@ -34,21 +34,19 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $raw = file_get_contents('php://input');
 
-// ── DEBUG: salva o payload bruto no Upstash para inspeção manual ─────────────
-// Acesse /api/ver_debug.php depois de um pagamento para ver exatamente o que
-// o BASSPAGO enviou. Remova este bloco (e o ver_debug.php) depois de resolver.
-try {
-    (new TransactionStore())->salvar('debug_last_webhook', [
-        'recebidoEm' => date('Y-m-d H:i:s'),
-        'raw'        => $raw,
-    ]);
-} catch (Throwable $e) {
-    // ignora falha de debug, não deve travar o processamento real
-}
-
 $payload = json_decode($raw, true);
 
-if (empty($payload['pix']) || !is_array($payload['pix'])) {
+// ── Normaliza os dois formatos possíveis em uma lista de itens PIX ───────────
+$itensPix = [];
+if (!empty($payload['pix']) && is_array($payload['pix'])) {
+    // Formato { "pix": [ {...}, {...} ] }
+    $itensPix = $payload['pix'];
+} elseif (!empty($payload['txid'])) {
+    // Formato real do BASSPAGO: objeto único direto na raiz
+    $itensPix = [$payload];
+}
+
+if (empty($itensPix)) {
     http_response_code(200); // Responde 200 para não gerar retry desnecessário
     echo json_encode(['ok' => false, 'msg' => 'Nenhum pix no payload']);
     exit;
@@ -57,7 +55,7 @@ if (empty($payload['pix']) || !is_array($payload['pix'])) {
 $tracker = new Tracker();
 $store   = new TransactionStore();
 
-foreach ($payload['pix'] as $pix) {
+foreach ($itensPix as $pix) {
     $txid = $pix['txid'] ?? null;
     if (!$txid) continue;
 
@@ -78,13 +76,18 @@ foreach ($payload['pix'] as $pix) {
             ? date('Y-m-d H:i:s', strtotime($pix['horario']))
             : date('Y-m-d H:i:s'),
         'endToEndId' => $pix['endToEndId'] ?? null,
+        'nome'       => $pix['pagador']['nome'] ?? ($txData['nome'] ?? ''),
+        'document'   => $pix['pagador']['cpf']  ?? ($txData['document'] ?? ''),
     ]);
 
     $tracker->purchase($data);
 
     // Marca transação como paga
     try {
-        $store->salvar($txid, array_merge($txData, ['status' => 'paid', 'paidAt' => $data['paidAt']]));
+        $store->salvar($txid, array_merge($txData, [
+            'status' => 'paid',
+            'paidAt' => $data['paidAt'],
+        ]));
     } catch (Throwable $e) {
         // segue mesmo assim
     }
