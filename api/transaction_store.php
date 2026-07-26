@@ -13,6 +13,8 @@
  * para o ciclo de vida de um QR Code PIX (a cobrança expira em 1h por padrão).
  */
 
+require_once __DIR__ . '/var.php';
+
 class TransactionStore
 {
     private string $baseUrl;
