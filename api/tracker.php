@@ -1,6 +1,7 @@
 <?php
 
 require_once __DIR__ . '/var.php';
+require_once __DIR__ . '/transaction_store.php';
 
 class Tracker
 {
@@ -42,7 +43,10 @@ class Tracker
     private function sendFacebook(string $eventName, array $data): void
     {
         if (empty($this->fbPixelId) || empty($this->fbAccessToken)) {
-            error_log('[Tracker/FB] Pulado: pixel ou token vazio.');
+            $this->debugSalvar('debug_last_fb', [
+                'evento' => $eventName,
+                'motivo' => 'Pulado: fbPixelId ou fbAccessToken vazio.',
+            ]);
             return;
         }
 
@@ -97,13 +101,15 @@ class Tracker
 
         [$httpCode, $resp, $curlErr] = $this->httpPost($url, $payload);
 
-        error_log(sprintf(
-            '[Tracker/FB] event=%s txid=%s http=%s resp=%s',
-            $eventName,
-            $data['txid'] ?? '-',
-            $httpCode,
-            $curlErr ?: $resp
-        ));
+        // ── DEBUG: salva o resultado dessa chamada no Upstash para inspeção ──
+        $this->debugSalvar('debug_last_fb', [
+            'evento'      => $eventName,
+            'txid'        => $data['txid'] ?? '-',
+            'httpCode'    => $httpCode,
+            'curlErro'    => $curlErr,
+            'resposta'    => $resp,
+            'payloadEnviado' => $payload,
+        ]);
     }
 
     // -------------------------------------------------------------------------
@@ -113,7 +119,6 @@ class Tracker
     private function sendUtmify(string $status, array $data): void
     {
         if (empty($this->utmifyToken)) {
-            error_log('[Tracker/UTMify] Pulado: token vazio.');
             return;
         }
 
@@ -173,15 +178,28 @@ class Tracker
             ['x-api-token: ' . $this->utmifyToken]
         );
 
-        // Log vai para os Logs da Vercel (Functions → Logs), não mais para arquivo,
-        // já que não há disco persistente no ambiente serverless.
-        error_log(sprintf(
-            '[Tracker/UTMify] status=%s txid=%s http=%s resp=%s',
-            $status,
-            $data['txid'] ?? '-',
-            $httpCode,
-            $curlErr ?: $resp
-        ));
+        $this->debugSalvar('debug_last_utmify', [
+            'status'   => $status,
+            'txid'     => $data['txid'] ?? '-',
+            'httpCode' => $httpCode,
+            'curlErro' => $curlErr,
+            'resposta' => $resp,
+        ]);
+    }
+
+    // -------------------------------------------------------------------------
+    // Debug helper (grava no Upstash para conseguirmos inspecionar depois)
+    // -------------------------------------------------------------------------
+
+    private function debugSalvar(string $chave, array $dados): void
+    {
+        try {
+            (new TransactionStore())->salvar($chave, array_merge($dados, [
+                'salvoEm' => date('Y-m-d H:i:s'),
+            ]));
+        } catch (Throwable $e) {
+            // não deixa o debug quebrar o fluxo principal
+        }
     }
 
     // -------------------------------------------------------------------------
@@ -211,7 +229,9 @@ class Tracker
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $curlErr  = curl_error($ch);
-        curl_close($ch);
+        if (function_exists('curl_close')) {
+            @curl_close($ch);
+        }
 
         return [$httpCode, (string)($response ?: ''), $curlErr];
     }
