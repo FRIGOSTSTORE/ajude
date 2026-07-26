@@ -9,10 +9,10 @@ $CHAVE_PIX = "fcd47d4c-bd68-440a-8480-9c5a6c184abc";
  
 // ── Facebook Conversions API ──────────────────────────────────────────────────
 $FB_PIXEL_ID      = "1520472869160223";
-$FB_ACCESS_TOKEN  = "EAASgeovzo6wBSBf22mtIitPIzP59EXMZBB1rc093X5iAWJZCMwIRW6bS7tMzjp09sVIuBSmtdCNWgrMimhJc1cMKCYrFTZCTNt39RVJqjxfHQcTssNnq0k3b51pJfjUrYsy7a2O1kupfyBm7IjxyJVztIH1lEtncx8EFUE7F1L1Pn47EHUgTQOZBmVFCsQZDZD";
+$FB_ACCESS_TOKEN  = "EAASgeovzo6wBSBCy4b5MX4V6BZB7rbhshXzQDIIquGvuQSySYcHMB8JC2X8imGEvaPOaPVYy4k4IRupPmA4ZBnskxJ7sCeukG5Nqx2NMjKBjQboZBlpx5fOcvZAZCJNgsexv1VR2C6EF2Vsc6IKuBFSAmpZCpl9MMZAi9IzSc1wZBv1ZAovKovoSHAKThLX0yugZDZD";
  
 // ── UTMify ────────────────────────────────────────────────────────────────────
-$UTMIFY_API_TOKEN = "3K02ny3fWCrqJ6ZPHsE52YSZnR25qhWRjcj5";
+$UTMIFY_API_TOKEN = "9pTHDkXNGgyOCNyQsyJZzSabQakOjjyE3tbs";
 $UTMIFY_API_TOKEN = "fqDiVG2FDCLjUvu4DVbEl6yLHNSr3yy8STDp";
 $NOME_PRODUTO = "Produto Digital";
 $ID_PRODUTO   = "produto-001";
