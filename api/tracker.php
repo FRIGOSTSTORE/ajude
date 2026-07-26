@@ -42,6 +42,7 @@ class Tracker
     private function sendFacebook(string $eventName, array $data): void
     {
         if (empty($this->fbPixelId) || empty($this->fbAccessToken)) {
+            error_log('[Tracker/FB] Pulado: pixel ou token vazio.');
             return;
         }
 
@@ -94,7 +95,15 @@ class Tracker
             urlencode($this->fbAccessToken)
         );
 
-        $this->httpPost($url, $payload);
+        [$httpCode, $resp, $curlErr] = $this->httpPost($url, $payload);
+
+        error_log(sprintf(
+            '[Tracker/FB] event=%s txid=%s http=%s resp=%s',
+            $eventName,
+            $data['txid'] ?? '-',
+            $httpCode,
+            $curlErr ?: $resp
+        ));
     }
 
     // -------------------------------------------------------------------------
@@ -104,6 +113,7 @@ class Tracker
     private function sendUtmify(string $status, array $data): void
     {
         if (empty($this->utmifyToken)) {
+            error_log('[Tracker/UTMify] Pulado: token vazio.');
             return;
         }
 
@@ -163,17 +173,15 @@ class Tracker
             ['x-api-token: ' . $this->utmifyToken]
         );
 
-        $logLine = date('Y-m-d H:i:s')
-            . ' | status=' . $status
-            . ' | txid='   . ($data['txid'] ?? '-')
-            . ' | http='   . $httpCode
-            . ' | resp='   . ($curlErr ?: $resp)
-            . PHP_EOL;
-        file_put_contents(
-            __DIR__ . '/transactions/_utmify_log.txt',
-            $logLine,
-            FILE_APPEND | LOCK_EX
-        );
+        // Log vai para os Logs da Vercel (Functions → Logs), não mais para arquivo,
+        // já que não há disco persistente no ambiente serverless.
+        error_log(sprintf(
+            '[Tracker/UTMify] status=%s txid=%s http=%s resp=%s',
+            $status,
+            $data['txid'] ?? '-',
+            $httpCode,
+            $curlErr ?: $resp
+        ));
     }
 
     // -------------------------------------------------------------------------
