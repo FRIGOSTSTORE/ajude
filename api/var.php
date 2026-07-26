@@ -13,7 +13,6 @@ $FB_ACCESS_TOKEN  = "EAASgeovzo6wBSBCy4b5MX4V6BZB7rbhshXzQDIIquGvuQSySYcHMB8JC2X
  
 // ── UTMify ────────────────────────────────────────────────────────────────────
 $UTMIFY_API_TOKEN = "9pTHDkXNGgyOCNyQsyJZzSabQakOjjyE3tbs";
-$UTMIFY_API_TOKEN = "fqDiVG2FDCLjUvu4DVbEl6yLHNSr3yy8STDp";
 $NOME_PRODUTO = "Produto Digital";
 $ID_PRODUTO   = "produto-001";
  
