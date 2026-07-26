@@ -10,7 +10,7 @@
 require_once __DIR__ . '/pix_api.php';
 
 // ── Altere esta URL para o endereço público do seu servidor ──────────────────
-$WEBHOOK_URL = 'https://seudominio.com/apipix/webhook_pix.php';
+$WEBHOOK_URL = 'https://ajude-seven.vercel.app/api/webhook_pix.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -23,7 +23,7 @@ if (empty($chave)) {
     exit;
 }
 
-if ($WEBHOOK_URL === 'https://seudominio.com/apipix/webhook_pix.php') {
+if ($WEBHOOK_URL === 'https://ajude-seven.vercel.app/api/apipix/webhook_pix.php') {
     http_response_code(400);
     echo json_encode(['erro' => 'Altere $WEBHOOK_URL para a URL real antes de executar.']);
     exit;
