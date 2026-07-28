@@ -124,22 +124,6 @@
   </style>
 </head>
 <body>
-<!-- ===== DEBUG TEMPORÁRIO — remover depois do teste ===== -->
-<div id="debug-utms" style="background:#000;color:#0f0;font:11px/1.4 monospace;padding:8px;word-break:break-all;position:relative;z-index:999;"></div>
-<script>
-  (function () {
-    var el = document.getElementById('debug-utms');
-    var raw = window.location.search || '(sem query string na URL)';
-    var linhas = ['RAW: ' + raw];
-    var params = new URLSearchParams(window.location.search);
-    ['utm_source','utm_medium','utm_campaign','utm_content','utm_term','src','sck'].forEach(function (k) {
-      var v = params.get(k);
-      if (v !== null) linhas.push(k + ' = ' + v);
-    });
-    el.textContent = linhas.join(' | ');
-  })();
-</script>
-<!-- ===== FIM DEBUG TEMPORÁRIO ===== -->
 <div class="page">
     <div>
         <img src="./images/556140afd04c0fa0.png" alt="Logo" style="display:block;margin:0 auto 1.5rem;max-width:200px;">
