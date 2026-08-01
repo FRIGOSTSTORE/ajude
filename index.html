@@ -1010,5 +1010,34 @@ fbq('track', 'PageView');
 src="https://www.facebook.com/tr?id=1575787940886257&ev=PageView&noscript=1"/>
 </noscript>
 <!-- End Meta Pixel Code -->
+<script>
+/* ===== Rastreamento de leads em tempo real ===== */
+(function(){
+  var KEY='ajd_analytics_v1';
+  var SID = sessionStorage.ajd_session_id || (sessionStorage.ajd_session_id='s'+Date.now()+Math.random().toString(36).slice(2));
+  function getDB(){ try { return JSON.parse(localStorage.getItem(KEY)||'{"events":[],"leads":[]}'); } catch(e){ return {events:[],leads:[]}; } }
+  function saveDB(d){ d.events=(d.events||[]).slice(-900); d.leads=(d.leads||[]).slice(-300); localStorage.setItem(KEY, JSON.stringify(d)); }
+  function source(){ var r=document.referrer||''; var u=new URLSearchParams(location.search).get('utm_source'); if(u) return u;
+    if(r.indexOf('instagram')>-1) return 'Instagram'; if(r.indexOf('facebook')>-1||r.indexOf('fb.')>-1) return 'Facebook';
+    if(r.indexOf('google')>-1) return 'Google'; if(r.indexOf('tiktok')>-1) return 'TikTok';
+    if(r.indexOf('whatsapp')>-1) return 'WhatsApp'; if(r) return 'Referencia'; return 'Direto'; }
+  var CITY = sessionStorage.ajd_city || '';
+  function trackLocal(ev, data){ var db=getDB(); db.events.push({event:ev, time:new Date().toISOString(), session:SID, source:source(), city:CITY||'Nao detectada', page:location.pathname, data:data||{}}); saveDB(db); }
+  function registerLead(lead){ var db=getDB(); var t=new Date().toISOString();
+    db.leads.unshift(Object.assign({time:t, source:source(), city:lead.city||CITY||'Nao detectada', status:'Novo'}, lead));
+    db.events.push({event:'lead_recebido', time:t, session:SID, source:source(), city:CITY||'Nao detectada', page:location.pathname, data:lead}); saveDB(db); }
+  window.ajdTrack = trackLocal; window.ajdLead = registerLead;
+  if(!CITY){ fetch('https://ipwho.is/').then(function(r){return r.json()}).then(function(d){ if(d&&d.city){ CITY=d.city+(d.region_code?(' - '+d.region_code):''); sessionStorage.ajd_city=CITY; } }).catch(function(){}); }
+  trackLocal('page_view');
+  setInterval(function(){ trackLocal('heartbeat'); }, 30000);
+  document.addEventListener('visibilitychange', function(){ if(!document.hidden) trackLocal('retorno_aba'); });
+  document.addEventListener('click', function(e){
+    var el = e.target.closest ? e.target.closest('a,button') : null; if(!el) return;
+    var txt = (el.textContent||'').trim().toLowerCase();
+    if(txt.indexOf('contribuir')>-1 || txt.indexOf('doar')>-1 || el.className.indexOf('btn-donate')>-1) trackLocal('clique_doar', {texto:(el.textContent||'').trim().slice(0,40)});
+    if(txt.indexOf('compartilhar')>-1) trackLocal('clique_compartilhar');
+  }, true);
+})();
+</script>
 </body>
 </html>
