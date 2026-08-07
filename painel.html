@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex,nofollow" />
+<title>Painel de Leads</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:#f6f7fb;color:#202124;font-size:16px}
+  .admin-top{position:sticky;top:0;background:#fff;border-bottom:1px solid #e0e3eb;padding:14px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;z-index:2}
+  .admin-title{display:flex;align-items:center;gap:10px;font-weight:900}
+  .live-dot{width:10px;height:10px;background:#1a73e8;border-radius:99px;box-shadow:0 0 0 6px rgba(26,115,232,.12);animation:pulse 1.6s infinite}
+  @keyframes pulse{50%{transform:scale(.8);opacity:.7}}
+  .admin-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .admin-btn{border:1px solid #dadce0;background:#fff;border-radius:8px;padding:9px 12px;font-weight:700;cursor:pointer;min-height:40px}
+  .admin-btn.primary{background:#1a73e8;color:#fff;border-color:#1a73e8}
+  .admin-wrap{max-width:1180px;margin:0 auto;padding:18px}
+  .admin-card{background:#fff;border:1px solid #e0e3eb;border-radius:10px;padding:18px;box-shadow:0 1px 2px rgba(60,64,67,.08)}
+  .admin-hero{display:grid;grid-template-columns:1.35fr 1fr;gap:14px;margin-bottom:14px}
+  .admin-metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+  .metric-label{font-size:12px;color:#5f6368;text-transform:uppercase;font-weight:800;border-bottom:1px dashed #cfd4dc;display:inline-block}
+  .metric-value{font-size:34px;font-weight:500;margin-top:4px}
+  .metric-sub{font-size:12px;color:#5f6368}
+  .bar-chart{height:108px;display:flex;align-items:end;gap:5px;border-bottom:1px solid #dfe3ea;padding-top:10px}
+  .bar-chart span{flex:1;background:#1a73e8;min-height:3px;border-radius:2px 2px 0 0}
+  .mapbox{height:210px;border-radius:8px;background:linear-gradient(135deg,#eef3fb,#fff);position:relative;overflow:hidden}
+  .bubble{position:absolute;background:rgba(26,115,232,.72);border-radius:50%;border:2px solid rgba(255,255,255,.8)}
+  .admin-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  .admin-card h3{font-size:15px;margin-bottom:12px}
+  .list-row{display:flex;justify-content:space-between;border-bottom:1px solid #eef0f4;padding:9px 0;font-size:14px;gap:12px}
+  .list-row:last-child{border-bottom:0}
+  .muted{color:#5f6368}
+  .lead-table{grid-column:1/-1;overflow:auto}
+  .lead-table table{width:100%;border-collapse:collapse;font-size:14px}
+  .lead-table th,.lead-table td{text-align:left;border-bottom:1px solid #eef0f4;padding:10px;white-space:nowrap}
+  .lead-table th{color:#5f6368;font-size:12px;text-transform:uppercase}
+  .status-new{color:#1a73e8;font-weight:800}
+  .gate{position:fixed;inset:0;display:grid;place-items:center;background:#0f1115;padding:20px;z-index:10}
+  .gate.hidden{display:none}
+  .gate-card{width:min(380px,100%);background:#fff;border-radius:14px;padding:24px;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+  .gate-card h3{margin-bottom:8px}
+  .gate-card p{color:#5f6368;font-size:14px;margin-bottom:14px}
+  .gate-card input{width:100%;border:1px solid #dadce0;border-radius:10px;padding:12px;font-size:16px;margin-bottom:12px}
+  .gate-error{display:none;color:#d93025;font-size:13px;font-weight:700;margin-bottom:10px}
+  .app{display:none}
+  .app.show{display:block}
+  @media(max-width:850px){.admin-hero,.admin-grid{grid-template-columns:1fr}.admin-metrics{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body>
+
+<div class="gate" id="gate">
+  <div class="gate-card">
+    <h3>Acesso restrito</h3>
+    <p>Digite a senha para abrir o painel de leads.</p>
+    <input id="adminPass" type="password" placeholder="Senha do painel" autofocus />
+    <div class="gate-error" id="gateError">Senha incorreta.</div>
+    <button class="admin-btn primary" onclick="checkAdminPass()">Entrar</button>
+  </div>
+</div>
+
+<div class="app" id="app">
+  <div class="admin-top">
+    <div class="admin-title"><span class="live-dot"></span> Painel em tempo real — Vaquinha — Wesley <span id="liveClock" style="font-weight:600;color:#5f6368;font-size:13px"></span></div>
+    <div class="admin-actions">
+      <button class="admin-btn" onclick="exportLeadsCSV()">Exportar CSV</button>
+      <button class="admin-btn" onclick="seedDemoLead()">Simular lead</button>
+      <button class="admin-btn" onclick="limparDados()">Limpar dados</button>
+      <a class="admin-btn" href="/" style="text-decoration:none;color:inherit;display:inline-flex;align-items:center">Voltar ao site</a>
+    </div>
+  </div>
+  <div class="admin-wrap">
+    <div class="admin-hero">
+      <div class="admin-card">
+        <div style="display:flex;gap:34px;flex-wrap:wrap">
+          <div><div class="metric-label">Usuários ativos nos últimos 30 minutos</div><div class="metric-value" id="m30">0</div></div>
+          <div><div class="metric-label">Usuários ativos nos últimos 5 minutos</div><div class="metric-value" id="m5">0</div></div>
+        </div>
+        <div class="metric-label" style="margin-top:14px">Usuários ativos por minuto</div>
+        <div class="bar-chart" id="minuteBars"></div>
+      </div>
+      <div class="admin-card"><h3>Mapa aproximado dos acessos</h3><div class="mapbox" id="mapBox"></div></div>
+    </div>
+    <div class="admin-metrics">
+      <div class="admin-card"><div class="metric-label">Leads hoje</div><div class="metric-value" id="leadsToday">0</div><div class="metric-sub">formulários enviados</div></div>
+      <div class="admin-card"><div class="metric-label">Cliques em compra</div><div class="metric-value" id="clicksBuy">0</div><div class="metric-sub">add carrinho + checkout</div></div>
+      <div class="admin-card"><div class="metric-label">Pedidos</div><div class="metric-value" id="ordersToday">0</div><div class="metric-sub">pedidos confirmados</div></div>
+      <div class="admin-card"><div class="metric-label">Faturamento potencial</div><div class="metric-value" id="revenueToday">R$ 0</div><div class="metric-sub">total dos leads</div></div>
+    </div>
+    <div class="admin-grid">
+      <div class="admin-card"><h3>Origem dos acessos</h3><div id="sourceList"></div></div>
+      <div class="admin-card"><h3>Cidades</h3><div id="cityList"></div></div>
+      <div class="admin-card"><h3>Eventos recentes</h3><div id="eventList"></div></div>
+      <div class="admin-card lead-table"><h3>Últimos leads</h3>
+        <table><thead><tr><th>Hora</th><th>Nome</th><th>WhatsApp</th><th>Cidade</th><th>Pedido</th><th>Total</th><th>Status</th></tr></thead>
+        <tbody id="leadRows"></tbody></table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const ADMIN_PASSWORD = '1234'; // altere aqui se quiser outra senha
+const ANALYTICS_KEY = 'ajd_analytics_v1';
+
+function getAnalytics(){ try { return JSON.parse(localStorage.getItem(ANALYTICS_KEY) || '{"events":[],"leads":[]}'); } catch(e){ return {events:[],leads:[]}; } }
+function saveAnalytics(d){ localStorage.setItem(ANALYTICS_KEY, JSON.stringify(d)); }
+function brlAdmin(n){ return (Number(n)||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
+function countBy(arr, fn){ return arr.reduce((a,x)=>{ const k = fn(x) || 'Não informado'; a[k]=(a[k]||0)+1; return a; },{}); }
+function rowsFromCounts(obj){
+  const rows = Object.entries(obj).sort((a,b)=>b[1]-a[1]).slice(0,6)
+    .map(([k,v])=>`<div class="list-row"><span>${k}</span><b>${v}</b></div>`).join('');
+  return rows || '<div class="muted">Nenhum dado disponível</div>';
+}
+
+function checkAdminPass(){
+  const v = (document.getElementById('adminPass')||{}).value || '';
+  if (v === ADMIN_PASSWORD) {
+    sessionStorage.ajd_admin_ok = '1';
+    document.getElementById('gate').classList.add('hidden');
+    document.getElementById('app').classList.add('show');
+    render();
+  } else {
+    document.getElementById('gateError').style.display = 'block';
+  }
+}
+document.getElementById('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') checkAdminPass(); });
+if (sessionStorage.ajd_admin_ok === '1') {
+  document.getElementById('gate').classList.add('hidden');
+  document.getElementById('app').classList.add('show');
+}
+
+function render(){
+  const db = getAnalytics();
+  const ev = db.events || [], leads = db.leads || [];
+  const now = Date.now();
+  const today = new Date().toISOString().slice(0,10);
+  const evToday = ev.filter(e => (e.time||'').slice(0,10) === today);
+  const leadsToday = leads.filter(l => (l.time||'').slice(0,10) === today);
+
+  document.getElementById('m30').textContent = new Set(ev.filter(e => now - new Date(e.time).getTime() < 30*60000).map(e=>e.session)).size;
+  document.getElementById('m5').textContent  = new Set(ev.filter(e => now - new Date(e.time).getTime() < 5*60000).map(e=>e.session)).size;
+  document.getElementById('leadsToday').textContent = leadsToday.length;
+  document.getElementById('clicksBuy').textContent = evToday.filter(e => ['add_carrinho','checkout_aberto'].includes(e.event)).length;
+  document.getElementById('ordersToday').textContent = evToday.filter(e => e.event === 'pedido_confirmado').length;
+  document.getElementById('revenueToday').textContent = brlAdmin(leadsToday.reduce((s,l)=> s + (Number(l.total)||0), 0));
+
+  const mins = [];
+  for (let i = 29; i >= 0; i--) {
+    const start = now - i*60000;
+    mins.push(ev.filter(e => { const t = new Date(e.time).getTime(); return t >= start && t < start + 60000; }).length);
+  }
+  const max = Math.max(1, ...mins);
+  document.getElementById('minuteBars').innerHTML = mins.map(v => `<span style="height:${Math.max(3, v/max*96)}px" title="${v}"></span>`).join('');
+
+  document.getElementById('sourceList').innerHTML = rowsFromCounts(countBy(evToday, e => e.source));
+  document.getElementById('cityList').innerHTML   = rowsFromCounts(countBy(evToday, e => e.city));
+  document.getElementById('eventList').innerHTML  = ev.slice(-7).reverse()
+    .map(e => `<div class="list-row"><span>${e.event}</span><span class="muted">${new Date(e.time).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span></div>`).join('')
+    || '<div class="muted">Nenhum evento ainda</div>';
+
+  document.getElementById('leadRows').innerHTML = leads.slice(0,20)
+    .map(l => `<tr><td>${new Date(l.time).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</td><td>${l.name||'-'}</td><td>${l.phone||'-'}</td><td>${l.city||'-'}</td><td>${l.items||'-'}</td><td>${brlAdmin(l.total)}</td><td class="status-new">${l.status||'Novo'}</td></tr>`).join('')
+    || '<tr><td colspan="7" class="muted">Nenhum lead recebido ainda</td></tr>';
+
+  const cities = Object.keys(countBy(evToday, e => e.city)).slice(0,8);
+  document.getElementById('mapBox').innerHTML = cities
+    .map((c,i) => `<span class="bubble" title="${c}" style="width:${20+i*4}px;height:${20+i*4}px;left:${25+(i*9)%55}%;top:${18+(i*13)%60}%"></span>`).join('');
+
+  const clock = document.getElementById('liveClock');
+  if (clock) clock.textContent = '· atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+}
+
+function exportLeadsCSV(){
+  const leads = getAnalytics().leads || [];
+  const head = ['time','name','phone','city','items','total','source','status'];
+  const csv = [['hora','nome','whatsapp','cidade','pedido','total','origem','status'].join(';')]
+    .concat(leads.map(l => head.map(k => '"' + String(l[k] ?? '').replace(/"/g,'""') + '"').join(';'))).join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], {type:'text/csv;charset=utf-8'}));
+  a.download = 'leads-vaquinha.csv';
+  a.click();
+}
+
+function seedDemoLead(){
+  const db = getAnalytics();
+  const t = new Date().toISOString();
+  db.leads = db.leads || []; db.events = db.events || [];
+  db.leads.unshift({ time:t, name:'Cliente teste', phone:'(11) 99999-9999', city:'São Paulo', items:'Doacao PIX', total:24.99, source:'Direto', status:'Novo' });
+  db.events.push({ event:'lead_recebido', time:t, session:'teste', source:'Direto', city:'São Paulo' });
+  saveAnalytics(db); render();
+}
+
+function limparDados(){
+  if (confirm('Apagar todos os leads e eventos salvos neste navegador?')) {
+    localStorage.removeItem(ANALYTICS_KEY); render();
+  }
+}
+
+render();
+setInterval(render, 3000);
+window.addEventListener('storage', render);
+</script>
+</body>
+</html>
