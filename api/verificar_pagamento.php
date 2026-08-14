@@ -1,6 +1,6 @@
 <?php
 ​
-error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
+error_reporting(0);
 ini_set('display_errors', '0');
 ​
 header('Content-Type: application/json; charset=utf-8');
@@ -148,3 +148,4 @@ echo json_encode([
     'paidAt'     => $paidAt,
     'disparado'  => $jaDisparado,
 ]);
+​
