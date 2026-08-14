@@ -5,6 +5,18 @@ ini_set('display_errors', '0');
 ​
 header('Content-Type: application/json; charset=utf-8');
 ​
+define('VERSAO_VERIFICADOR', 'v3-sem-comentarios');
+​
+if (isset($_GET['ping'])) {
+    echo json_encode([
+        'ok'      => true,
+        'versao'  => VERSAO_VERIFICADOR,
+        'arquivo' => basename(__FILE__),
+        'php'     => PHP_VERSION,
+    ]);
+    exit;
+}
+​
 ob_start();
 ​
 register_shutdown_function(function () {
@@ -55,7 +67,7 @@ try {
 }
 ​
 if (($txData['status'] ?? '') === 'paid') {
-    echo json_encode(['txid' => $txid, 'status' => 'paid', 'fonte' => 'cache']);
+    echo json_encode(['txid' => $txid, 'status' => 'paid', 'fonte' => 'cache', 'versao' => VERSAO_VERIFICADOR]);
     exit;
 }
 ​
@@ -88,6 +100,7 @@ if (!$foiPago) {
         'txid'      => $txid,
         'status'    => 'waiting_paid',
         'statusPsp' => $statusPsp,
+        'versao'    => VERSAO_VERIFICADOR,
     ]);
     exit;
 }
@@ -135,4 +148,3 @@ echo json_encode([
     'paidAt'     => $paidAt,
     'disparado'  => $jaDisparado,
 ]);
-​
