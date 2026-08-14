@@ -1,16 +1,4 @@
 <?php
-/**
- * verificar_pagamento.php
- *
- * Retorna o status de uma transacao PIX pelo txid.
- *
- * GET /verificar_pagamento.php?txid={txid}
- *
- * IMPORTANTE: este endpoint NAO depende mais do webhook do BASSPAGO.
- * Ele consulta a cobranca direto no PSP (GET /cob/{txid}) e, na primeira vez
- * que detecta o pagamento, dispara o evento Purchase (Facebook) e o status
- * "paid" (UTMify). Assim a venda aprovada e marcada mesmo se o webhook falhar.
- */
 ​
 error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
 ini_set('display_errors', '0');
@@ -46,7 +34,6 @@ require_once __DIR__ . '/pix_api.php';
 require_once __DIR__ . '/tracker.php';
 require_once __DIR__ . '/transaction_store.php';
 ​
-// Sanitiza o txid - apenas alfanumerico
 $txid = preg_replace('/[^a-zA-Z0-9]/', '', $_GET['txid'] ?? '');
 ​
 if (empty($txid)) {
@@ -55,9 +42,6 @@ if (empty($txid)) {
     exit;
 }
 ​
-// ---------------------------------------------------------------------------
-// 1) Le o que ja foi salvo na criacao do QR Code (UTMs, nome, email, etc.)
-// ---------------------------------------------------------------------------
 $store    = null;
 $txData   = [];
 $storeErr = null;
@@ -70,15 +54,11 @@ try {
     error_log('[verificar_pagamento] Upstash indisponivel: ' . $storeErr);
 }
 ​
-// Se o webhook (ou uma consulta anterior) ja confirmou, responde na hora.
 if (($txData['status'] ?? '') === 'paid') {
     echo json_encode(['txid' => $txid, 'status' => 'paid', 'fonte' => 'cache']);
     exit;
 }
 ​
-// ---------------------------------------------------------------------------
-// 2) Consulta a cobranca direto no PSP - fonte da verdade
-// ---------------------------------------------------------------------------
 $statusPsp = null;
 $cob       = [];
 ​
@@ -88,7 +68,6 @@ try {
 } catch (Throwable $e) {
     error_log('[verificar_pagamento] Falha ao consultar PSP txid=' . $txid . ': ' . $e->getMessage());
 ​
-    // Nao derruba o checkout: informa que segue aguardando.
     echo json_encode([
         'txid'   => $txid,
         'status' => $txData['status'] ?? 'waiting_paid',
@@ -100,8 +79,6 @@ try {
 $statusPagos = ['CONCLUIDA', 'CONCLUIDO', 'PAGA', 'PAGO', 'PAID', 'COMPLETED'];
 $foiPago     = in_array($statusPsp, $statusPagos, true);
 ​
-// Alguns PSPs devolvem o array "pix" preenchido assim que o pagamento cai,
-// mesmo antes de mudar o campo status. Tratamos isso como pago tambem.
 if (!$foiPago && !empty($cob['pix']) && is_array($cob['pix'])) {
     $foiPago = true;
 }
@@ -115,10 +92,6 @@ if (!$foiPago) {
     exit;
 }
 ​
-// ---------------------------------------------------------------------------
-// 3) Pago! Marca como pago ANTES de disparar, para nao duplicar o evento
-//    caso o navegador faca duas consultas quase simultaneas.
-// ---------------------------------------------------------------------------
 $infoPix = (!empty($cob['pix']) && is_array($cob['pix'])) ? ($cob['pix'][0] ?? []) : [];
 ​
 $horario = $infoPix['horario'] ?? ($cob['calendario']['criacao'] ?? null);
@@ -147,9 +120,6 @@ if ($store !== null) {
     }
 }
 ​
-// ---------------------------------------------------------------------------
-// 4) Dispara Purchase (Facebook) + status paid (UTMify)
-// ---------------------------------------------------------------------------
 try {
     (new Tracker())->purchase($dadosPagos);
     $jaDisparado = true;
