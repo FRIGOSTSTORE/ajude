@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Contribuição PIX</title>
   <!-- Meta Pixel Base -->
-
-
-
-
+​
+​
+​
+​
   
 <script>
   !function(f,b,e,v,n,t,s)
@@ -22,23 +22,23 @@
   fbq('init', '1520472869160223');
   fbq('init', '1762981111690468');
  </script>
-
-
+​
+​
 <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
 new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
 j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
 })(window,document,'script','dataLayer','GTM-NMSZ9M72');</script>
 <!-- End Google Tag Manager -->
-
-
-
-
-
-
-
-
-
+​
+​
+​
+​
+​
+​
+​
+​
+​
   
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -158,12 +158,12 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   color: #000 !important;
   -webkit-text-fill-color: #000 !important;
 }
-
+​
 .btn-valor {
   -webkit-appearance: none;
   appearance: none;
 }
-
+​
 </style>
 </head>
 <body>
@@ -172,9 +172,9 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <img src="./images/556140afd04c0fa0.png" alt="Logo" style="display:block;margin:0 auto 1.5rem;max-width:200px;">
     </div>
   <div id="tela-selecao">
-    <h1>1º colocado em Medicina na USP. Vamos ajudar ele a chegar lá.</h1>
+    <h1>Ajude João a enxergar o mundo</h1>
     <p class="subtitle">Qual valor você deseja doar?</p>
-
+​
     <div class="grid-valores" id="grid-valores"></div>
     <div class="upsell">
       <div class="upsell-header">
@@ -187,7 +187,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       <div class="produtos-grid" id="produtos-grid"></div>
     </div>
     <div class="total-area">
-      <p class="total-label">1º colocado em Medicina na USP. Vamos ajudar ele a chegar lá.</p>
+      <p class="total-label">Ajude com o valor que seu coração mandar 💚</p>
       <div class="total-valor-box">
         <input type="text" class="total-input" id="total-input" value="20,00">
       </div>
@@ -242,6 +242,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     <div class="codigo-pix" id="codigo-pix">—</div>
     <button class="btn-copiar"    id="btn-copiar">Copiar código</button>
     <button class="btn-verificar" id="btn-verificar">Verificar pagamento</button>
+    <div id="status-verificacao" style="margin-top:10px;font-size:13px;color:#777;text-align:center;word-break:break-word"></div>
   </div>
   <div id="tela-obrigado">
     <span class="check-grande">✅</span>
@@ -254,7 +255,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   // Le respostas JSON e transforma erros PHP em mensagens compreensiveis.
   async function lerJsonSeguro(resposta) {
     const texto = await resposta.text();
-
+​
     try {
       return JSON.parse(texto);
     } catch (erro) {
@@ -262,22 +263,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         .replace(/<br\s*\/?\s*>/gi, '\n')
         .replace(/<[^>]*>/g, '')
         .trim();
-
+​
       throw new Error(
         'O servidor n\u00e3o retornou JSON (HTTP ' + resposta.status + '). ' +
         (mensagem || 'Verifique os Logs da Vercel.')
       );
     }
   }
-
+​
   const API_GERAR_PIX = '/api/gerar_pix.php';
   const API_VERIFICAR_PAGAMENTO = '/api/verificar_pagamento.php';
-
+​
   const PLANOS = [30, 50, 70, 100, 150, 200, 500];
   const PRODUTOS = [
-    { id: 'p1', nome: '5 números da sorte', descricao: 'Você e quem criou a vaquinha concorrem ao sorteio de R$ 15.000,00 do Vakinha Premiada', emoji: '<img src="./images/imgi_1_lucky_2_.png"  style="width:1em;height:1em;">', preco: 10.00, precoLabel: 'Grátis' },
-    { id: 'p2', nome: '5 corações', descricao: 'Destacam essa vaquinha na plataforma', emoji: '<img src="./images/imgi_2_2x_SVG_CORAÇÃO_2_.png" style="width:1em;height:1em;">', preco: 4.99 },
-    { id: 'p3', nome: 'Mulheres Transformam 2026', descricao: 'Você ajuda mulheres que precisam de uma chance para recomeçar.', emoji: '<img src="./images/imgi_5_Mulheres_Transformam_2026.png" style="width:1em;height:1em;">', preco: 2.00 },
+    { id: 'p1', nome: '5 n\u00fameros da sorte', descricao: 'Voc\u00ea e quem criou a vaquinha concorrem ao sorteio de R$ 15.000,00 do Vakinha Premiada', emoji: '<img src="./images/imgi_1_lucky_2_.png"  style="width:1em;height:1em;">', preco: 10.00, precoLabel: 'Gr\u00e1tis' },
+    { id: 'p2', nome: '5 cora\u00e7\u00f5es', descricao: 'Destacam essa vaquinha na plataforma', emoji: '<img src="./images/imgi_2_2x_SVG_CORA\u00c7\u00c3O_2_.png" style="width:1em;height:1em;">', preco: 4.99 },
+    { id: 'p3', nome: 'Mulheres Transformam 2026', descricao: 'Voc\u00ea ajuda mulheres que precisam de uma chance para recome\u00e7ar.', emoji: '<img src="./images/imgi_5_Mulheres_Transformam_2026.png" style="width:1em;height:1em;">', preco: 2.00 },
   ];
   let valorBase   = 20;
   let extraUpsell = 0;
@@ -297,7 +298,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     gridValores.appendChild(btn);
   });
   } catch (e) { console.error('valores', e); }
-
+​
   // Deixa o primeiro valor selecionado e evita a tela ficar sem botoes ativos.
   const primeiroBotaoValor = document.querySelector('.btn-valor');
   if (primeiroBotaoValor) {
@@ -369,7 +370,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       if (window.location.protocol === 'file:') {
         throw new Error('Abra pelo site/servidor, n\u00e3o direto pelo arquivo. Use http://localhost ou Vercel.');
       }
-
+​
       const r = await fetch(API_GERAR_PIX, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -410,12 +411,22 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   });
   let pollInterval  = null;
   let pagamentoOk   = false;
-
+​
   // Consulta o status do pagamento. Retorna true se ja foi confirmado como pago.
+  function mostrarStatusVerificacao(texto, erro) {
+    const el = document.getElementById('status-verificacao');
+    if (!el) return;
+    el.textContent = texto;
+    el.style.color = erro ? '#c0392b' : '#777';
+  }
+​
   async function consultarStatusPagamento() {
     if (!txidAtual || pagamentoOk) return pagamentoOk;
     const r    = await fetch(API_VERIFICAR_PAGAMENTO + '?txid=' + encodeURIComponent(txidAtual));
     const data = await lerJsonSeguro(r);
+    if (data.erro) {
+      throw new Error(data.erro + (data.arquivo ? ' [' + data.arquivo + ']' : ''));
+    }
     if (data.status === 'paid') {
       pagamentoOk = true;
       if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
@@ -425,16 +436,34 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     }
     return false;
   }
-
-
+​
+​
   // Verifica automaticamente a cada poucos segundos, sem precisar que o lead
   // clique em nada - cobre o caso comum de quem paga pelo app do banco e nao
   // volta pra clicar em "Verificar pagamento".
   function iniciarVerificacaoAutomatica() {
     if (pollInterval) clearInterval(pollInterval);
-    pollInterval = setInterval(consultarStatusPagamento, 5000);
+​
+    let falhas = 0;
+​
+    const tentar = async () => {
+      try {
+        const ok = await consultarStatusPagamento();
+        falhas = 0;
+        if (!ok) {
+          mostrarStatusVerificacao('Aguardando o pagamento... verificando automaticamente.', false);
+        }
+      } catch (e) {
+        falhas++;
+        mostrarStatusVerificacao('Falha ao verificar (' + falhas + '): ' + (e && e.message ? e.message : e), true);
+        console.error('[verificar]', e);
+      }
+    };
+​
+    tentar();
+    pollInterval = setInterval(tentar, 5000);
   }
-
+​
   document.getElementById('btn-verificar').addEventListener('click', async () => {
     if (!txidAtual) return;
     const btn   = document.getElementById('btn-verificar');
@@ -445,8 +474,10 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       if (!ok) {
         alert('Pagamento ainda n\u00e3o confirmado. Aguarde alguns segundos e tente de novo.');
       }
-    } catch {
-      alert('Erro ao verificar. Tente novamente.');
+    } catch (e) {
+      const msg = (e && e.message) ? e.message : String(e);
+      mostrarStatusVerificacao('Falha ao verificar: ' + msg, true);
+      alert('Erro ao verificar: ' + msg);
     } finally {
       btn.disabled    = false;
       btn.textContent = 'Verificar pagamento';
