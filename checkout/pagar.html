@@ -172,7 +172,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <img src="./images/556140afd04c0fa0.png" alt="Logo" style="display:block;margin:0 auto 1.5rem;max-width:200px;">
     </div>
   <div id="tela-selecao">
-    <h1>Ajude o filho de doméstica e pedreiro, ele foi o 1º colocado em Medicina na USP. Vamos ajudar ele a chegar lá.</h1>
+    <h1>Ajude João a enxergar o mundo</h1>
     <p class="subtitle">Qual valor você deseja doar?</p>
 
     <div class="grid-valores" id="grid-valores"></div>
@@ -187,13 +187,33 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       <div class="produtos-grid" id="produtos-grid"></div>
     </div>
     <div class="total-area">
-      <p class="total-label">Ajude com o valor que seu coração mandar 💚</p>
+      <p class="total-label">Ajude João a enxergar o mundo</p>
       <div class="total-valor-box">
         <input type="text" class="total-input" id="total-input" value="20,00">
       </div>
-      <button class="btn-comprar" id="btn-comprar">CONTRIBUIR</button>
+      <button class="btn-comprar" id="btn-comprar" type="button" onclick="abrirModalBonus()">CONTRIBUIR</button>
     </div>
   </div>
+<script>
+  // Bloco independente: garante que o botao CONTRIBUIR sempre abra o modal,
+  // mesmo que algum outro script da pagina falhe.
+  function abrirModalBonus() {
+    var ov = document.getElementById('overlay-bonus');
+    if (ov) ov.classList.add('ativo');
+  }
+  function fecharModalBonus() {
+    var ov = document.getElementById('overlay-bonus');
+    if (ov) ov.classList.remove('ativo');
+  }
+  window.addEventListener('error', function (e) {
+    var box = document.getElementById('js-erro');
+    if (box) {
+      box.style.display = 'block';
+      box.textContent = 'JS: ' + (e.message || 'erro') + ' (' + (e.filename || '') + ':' + (e.lineno || 0) + ')';
+    }
+  });
+</script>
+<div id="js-erro" style="display:none;background:#ffe6e6;color:#a00;font:12px/1.4 monospace;padding:8px;margin:8px;border-radius:6px;white-space:pre-wrap"></div>
   <div class="overlay" id="overlay-bonus">
     <div class="modal">
       <h2>Identificação 💚</h2>
@@ -210,8 +230,8 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         <input type="email" class="campo-modal" id="campo-email" placeholder="E-mail">
         <input type="text"  class="campo-modal" id="campo-cpf"   placeholder="CPF">
       </div>
-      <button class="btn-modal-pix" id="btn-gerar-pix">Gerar PIX agora</button>
-      <button class="btn-cancelar"  id="btn-cancelar">Cancelar</button>
+      <button class="btn-modal-pix" id="btn-gerar-pix" type="button">Gerar PIX agora</button>
+      <button class="btn-cancelar"  id="btn-cancelar" type="button" onclick="fecharModalBonus()">Cancelar</button>
     </div>
   </div>
   <div id="tela-qrcode">
@@ -231,7 +251,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 </div>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>
-  // Lê respostas JSON e transforma erros PHP em mensagens compreensíveis.
+  // Le respostas JSON e transforma erros PHP em mensagens compreensiveis.
   async function lerJsonSeguro(resposta) {
     const texto = await resposta.text();
 
@@ -244,11 +264,14 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         .trim();
 
       throw new Error(
-        'O servidor não retornou JSON (HTTP ' + resposta.status + '). ' +
+        'O servidor n\u00e3o retornou JSON (HTTP ' + resposta.status + '). ' +
         (mensagem || 'Verifique os Logs da Vercel.')
       );
     }
   }
+
+  const API_GERAR_PIX = '/api/gerar_pix.php';
+  const API_VERIFICAR_PAGAMENTO = '/api/verificar_pagamento.php';
 
   const PLANOS = [30, 50, 70, 100, 150, 200, 500];
   const PRODUTOS = [
@@ -260,6 +283,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
   let extraUpsell = 0;
   let txidAtual   = null;
   const gridValores = document.getElementById('grid-valores');
+  try {
   PLANOS.forEach((v, i) => {
     const btn = document.createElement('button');
     btn.className    = 'btn-valor' + (i === PLANOS.length - 1 ? ' full' : '');
@@ -272,7 +296,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     });
     gridValores.appendChild(btn);
   });
+  } catch (e) { console.error('valores', e); }
+
+  // Deixa o primeiro valor selecionado e evita a tela ficar sem botoes ativos.
+  const primeiroBotaoValor = document.querySelector('.btn-valor');
+  if (primeiroBotaoValor) {
+    primeiroBotaoValor.classList.add('ativo');
+    valorBase = PLANOS[0];
+    atualizarTotal();
+  }
   const produtosGrid = document.getElementById('produtos-grid');
+  try {
   PRODUTOS.forEach(p => {
     const card = document.createElement('div');
     card.className     = 'produto-card';
@@ -291,6 +325,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     });
     produtosGrid.appendChild(card);
   });
+  } catch (e) { console.error('produtos', e); }
   document.getElementById('check-upsell').addEventListener('change', e => {
     if (!e.target.checked) {
       document.querySelectorAll('.produto-card.selecionado').forEach(c => c.classList.remove('selecionado'));
@@ -331,7 +366,11 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     btn.innerHTML = '<span class="spinner"></span> Gerando...';
     const total = valorBase + extraUpsell;
     try {
-      const r = await fetch('/api/gerar_pix.php', {
+      if (window.location.protocol === 'file:') {
+        throw new Error('Abra pelo site/servidor, n\u00e3o direto pelo arquivo. Use http://localhost ou Vercel.');
+      }
+
+      const r = await fetch(API_GERAR_PIX, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -346,7 +385,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       if (!r.ok || data.erro) throw new Error(data.erro || 'Erro ' + r.status);
       txidAtual = data.txid;
       const codigo = data.pixCopiaECola || data._raw?.pixCopiaECola || '';
-      document.getElementById('codigo-pix').textContent = codigo || '—';
+      document.getElementById('codigo-pix').textContent = codigo || '\u2014';
       document.getElementById('qrcode-img').innerHTML   = '';
       if (codigo)
         new QRCode(document.getElementById('qrcode-img'), { text: codigo, width: 220, height: 220 });
@@ -365,17 +404,17 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     const texto = document.getElementById('codigo-pix').textContent;
     navigator.clipboard.writeText(texto).then(() => {
       const b = document.getElementById('btn-copiar');
-      b.textContent = '✓ Copiado!';
-      setTimeout(() => { b.textContent = 'Copiar código'; }, 2000);
+      b.textContent = '\u2713 Copiado!';
+      setTimeout(() => { b.textContent = 'Copiar c\u00f3digo'; }, 2000);
     });
   });
   let pollInterval  = null;
   let pagamentoOk   = false;
 
-  // Consulta o status do pagamento. Retorna true se já foi confirmado como pago.
+  // Consulta o status do pagamento. Retorna true se ja foi confirmado como pago.
   async function consultarStatusPagamento() {
     if (!txidAtual || pagamentoOk) return pagamentoOk;
-    const r    = await fetch('/api/verificar_pagamento.php?txid=' + encodeURIComponent(txidAtual));
+    const r    = await fetch(API_VERIFICAR_PAGAMENTO + '?txid=' + encodeURIComponent(txidAtual));
     const data = await lerJsonSeguro(r);
     if (data.status === 'paid') {
       pagamentoOk = true;
@@ -389,7 +428,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
 
 
   // Verifica automaticamente a cada poucos segundos, sem precisar que o lead
-  // clique em nada — cobre o caso comum de quem paga pelo app do banco e não
+  // clique em nada - cobre o caso comum de quem paga pelo app do banco e nao
   // volta pra clicar em "Verificar pagamento".
   function iniciarVerificacaoAutomatica() {
     if (pollInterval) clearInterval(pollInterval);
@@ -404,7 +443,7 @@ j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
     try {
       const ok = await consultarStatusPagamento();
       if (!ok) {
-        alert('Pagamento ainda não confirmado. Aguarde alguns segundos e tente de novo.');
+        alert('Pagamento ainda n\u00e3o confirmado. Aguarde alguns segundos e tente de novo.');
       }
     } catch {
       alert('Erro ao verificar. Tente novamente.');
