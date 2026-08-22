@@ -155,6 +155,37 @@ class Tracker
             return ($v !== null && $v !== '') ? (string)$v : null;
         };
 
+        $trackingParameters = [
+            'utm_source'   => $utm('utm_source'),
+            'utm_medium'   => $utm('utm_medium'),
+            'utm_campaign' => $utm('utm_campaign'),
+            'utm_content'  => $utm('utm_content'),
+            'utm_term'     => $utm('utm_term'),
+            'src'          => $utm('src'),
+            'sck'          => $utm('sck'),
+        ];
+
+        // A UTMify exige o bloco "trackingParameters" (com cada campo como
+        // string ou null) em toda chamada - omitir o bloco inteiro quebra a
+        // validacao de schema (400) e o pedido nem chega a ser criado/atualizado
+        // na UTMify. Por isso ele SEMPRE e enviado.
+        //
+        // A unica situacao em que isso e arriscado e numa atualizacao de status
+        // ("paid") onde falhamos em recuperar os utms originais (ex.: falha ao
+        // ler o registro salvo no Upstash) - nesse caso mandar tudo null pode
+        // apagar a campanha que ja tinha sido registrada no "waiting_payment".
+        // Na criacao ("waiting_payment") nao ha esse risco: e o primeiro
+        // registro do pedido, entao mandamos os utms (ou null) normalmente.
+        $temAlgumUtm = count(array_filter($trackingParameters, fn($v) => $v !== null)) > 0;
+
+        if (!$temAlgumUtm) {
+            error_log(sprintf(
+                '[Tracker/UTMify] ALERTA: nenhum utm_* recuperado para txid=%s status=%s - enviando trackingParameters com campos null (sem isso a UTMify rejeita o pedido com 400).',
+                $data['txid'] ?? '-',
+                $status
+            ));
+        }
+
         $body = [
             'orderId'       => $data['txid']      ?? uniqid('pix_'),
             'platform'      => 'custom',
@@ -177,21 +208,15 @@ class Tracker
                 'quantity'     => 1,
                 'priceInCents' => $centavos,
             ]],
-            'trackingParameters' => [
-                'utm_source'   => $utm('utm_source'),
-                'utm_medium'   => $utm('utm_medium'),
-                'utm_campaign' => $utm('utm_campaign'),
-                'utm_content'  => $utm('utm_content'),
-                'utm_term'     => $utm('utm_term'),
-                'src'          => $utm('src'),
-                'sck'          => $utm('sck'),
-            ],
             'commission' => [
                 'totalPriceInCents'     => $centavos,
                 'gatewayFeeInCents'     => 0,
                 'userCommissionInCents' => $centavos,
             ],
         ];
+
+        // Sempre enviado - ver comentario acima.
+        $body['trackingParameters'] = $trackingParameters;
 
         [$httpCode, $resp, $curlErr] = $this->httpPost(
             'https://api.utmify.com.br/api-credentials/orders',
