@@ -162,18 +162,6 @@ try {
         }
     }
 
-    // Log de diagnostico: mostra se o utm_campaign chegou do front-end JA
-    // NA CRIACAO do PIX. Se aqui ja estiver vazio, o problema e no
-    // getUTMs()/URL do checkout, nao no backend - vale conferir se a URL
-    // que o lead abriu realmente tinha ?utm_campaign=... etc.
-    error_log(sprintf(
-        '[gerar_pix] txid=%s utm_source=%s utm_campaign=%s utm_medium=%s',
-        $txid ?? '-',
-        $trackData['utm_source']   ?: 'vazio',
-        $trackData['utm_campaign'] ?: 'vazio',
-        $trackData['utm_medium']   ?: 'vazio'
-    ));
-
     // -- Dispara InitiateCheckout (FB) + waiting_paid (UTMify) ----------------
     (new Tracker())->initiateCheckout($trackData);
 
