@@ -71,6 +71,22 @@ if (($txData['status'] ?? '') === 'paid') {
     exit;
 }
 
+// Se o Upstash falhou ao carregar o registro (mesmo apos os retries internos
+// do carregar()), NAO seguimos para consultar o PSP e disparar o Purchase:
+// $txData ficaria vazio e o merge la embaixo mandaria trackingParameters
+// todo null pra UTMify, apagando a campanha que ja tinha sido registrada no
+// "waiting_payment". Melhor devolver "ainda pendente" e deixar o proximo
+// polling do frontend tentar de novo, quando o Upstash deve estar de volta.
+if ($storeErr !== null) {
+    echo json_encode([
+        'txid'   => $txid,
+        'status' => $txData['status'] ?? 'waiting_paid',
+        'aviso'  => 'Nao foi possivel confirmar os dados de rastreamento agora, tentando novamente.',
+        'versao' => VERSAO_VERIFICADOR,
+    ]);
+    exit;
+}
+
 $statusPsp = null;
 $cob       = [];
 
