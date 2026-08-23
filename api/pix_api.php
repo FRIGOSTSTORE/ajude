@@ -1,198 +1,348 @@
 <?php
-/**
- * Endpoint: gerar_pix.php
- * Cria uma cobranca PIX imediata e retorna os dados para geracao do QR Code.
- *
- * Aceita POST com JSON:
- * {
- *   "valor":        10.00,
- *   "descricao":    "Pedido #123",       (opcional)
- *   "utm_source":   "google",            (opcional)
- *   "utm_medium":   "cpc",               (opcional)
- *   "utm_campaign": "black-friday",      (opcional)
- *   "utm_content":  "banner",            (opcional)
- *   "utm_term":     "pix",               (opcional)
- *   "src":          "...",               (opcional - UTMify)
- *   "sck":          "...",               (opcional - UTMify)
- *   "fbc":          "_fbc cookie",       (opcional - Facebook)
- *   "fbp":          "_fbp cookie",       (opcional - Facebook)
- *   "url":          "https://...",       (opcional - pagina de origem)
- *   "email":        "...",               (opcional)
- *   "phone":        "...",               (opcional)
- * }
- */
 
-// Evita que Warnings/Notices do PHP quebrem o JSON de resposta
-error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
-ini_set('display_errors', '0');
+require_once __DIR__ . '/var.php';
 
-header('Content-Type: application/json; charset=utf-8');
+class PixApi
+{
+    private string $baseUrl;
+    private string $clientId;
+    private string $clientSecret;
+    private string $certPath;
+    private string $keyPath;
+    private string $keyPassword;
+    private string $caPath;
+    private ?string $accessToken = null;
+    private int $tokenExpiry = 0;
 
-// Bufferiza toda a saida: qualquer texto solto (BOM, espaco, warning) e
-// descartado antes do JSON, evitando resposta invalida no navegador.
-ob_start();
+    public function __construct()
+    {
+        global $URL_API, $CLIENT_ID, $CLIENT_SECRET, $SENHA_CASH_IN;
 
-// Rede de seguranca: se ocorrer um erro fatal do PHP (classe nao encontrada,
-// parse error em arquivo incluido, etc.), devolve o motivo exato em JSON em vez
-// de uma resposta vazia com HTTP 200.
-register_shutdown_function(function () {
-    $fatal = error_get_last();
-    $tiposFatais = [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR, E_USER_ERROR];
+        $this->baseUrl      = rtrim($URL_API, '/');
+        $this->clientId     = trim($CLIENT_ID);
+        $this->clientSecret = trim($CLIENT_SECRET);
+        $this->keyPassword  = trim($SENHA_CASH_IN);
+        $this->certPath     = __DIR__ . '/Certificados/BASSPAGO/PROD/QRCODES-MTLS/BASSPAGO_230.crt';
+        $this->keyPath      = __DIR__ . '/Certificados/BASSPAGO/PROD/QRCODES-MTLS/BASSPAGO_230.key';
+        $this->caPath       = __DIR__ . '/Certificados/BASSPAGO/PROD/QRCODES-MTLS/onz_ca.pem';
+    }
 
-    if ($fatal !== null && in_array($fatal['type'], $tiposFatais, true)) {
-        if (ob_get_length() !== false) {
-            ob_clean();
+    // -------------------------------------------------------------------------
+    // Autenticacao OAuth2 client_credentials com mTLS
+    // -------------------------------------------------------------------------
+
+    private function getToken(): string
+    {
+        if ($this->accessToken && time() < $this->tokenExpiry - 30) {
+            return $this->accessToken;
         }
-        if (!headers_sent()) {
-            http_response_code(500);
-            header('Content-Type: application/json; charset=utf-8');
+
+        $response = $this->request('POST', '/oauth/token', [
+            'client_id'     => $this->clientId,
+            'client_secret' => $this->clientSecret,
+            'grant_type'    => 'client_credentials',
+        ], 'form', false);
+
+        if (empty($response['access_token'])) {
+            throw new RuntimeException('Falha ao obter token de acesso: ' . json_encode($response));
         }
-        echo json_encode([
-            'erro' => 'PHP fatal: ' . $fatal['message'],
-            'arquivo' => basename((string)$fatal['file']) . ':' . $fatal['line'],
-        ], JSON_UNESCAPED_UNICODE);
+
+        $this->accessToken = $response['access_token'];
+        $this->tokenExpiry = time() + (int)($response['expires_in'] ?? 300);
+
+        return $this->accessToken;
     }
 
-    if (ob_get_length() !== false) {
-        ob_end_flush();
+    // -------------------------------------------------------------------------
+    // Cobrancas imediatas (/cob)
+    // -------------------------------------------------------------------------
+
+    /** Cria cobranca imediata com txid definido pelo PSP (POST /cob) */
+    public function criarCobranca(array $dados): array
+    {
+        return $this->request('POST', '/cob', $dados);
     }
-});
 
-// Confere se os arquivos da API existem antes de incluir, para dar um erro claro.
-foreach (['pix_api.php', 'tracker.php', 'transaction_store.php', 'var.php'] as $dependencia) {
-    if (!is_file(__DIR__ . '/' . $dependencia)) {
-        http_response_code(500);
-        echo json_encode(['erro' => 'Arquivo ausente na pasta api: ' . $dependencia], JSON_UNESCAPED_UNICODE);
-        exit;
+    /** Cria cobranca imediata com txid fornecido (PUT /cob/{txid}) */
+    public function criarCobrancaComTxid(string $txid, array $dados): array
+    {
+        $this->validarTxid($txid);
+        return $this->request('PUT', "/cob/{$txid}", $dados);
     }
-}
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    echo json_encode(['erro' => 'Metodo nao permitido.']);
-    exit;
-}
+    /** Atualiza cobranca imediata (PATCH /cob/{txid}) */
+    public function atualizarCobranca(string $txid, array $dados): array
+    {
+        $this->validarTxid($txid);
+        return $this->request('PATCH', "/cob/{$txid}", $dados);
+    }
 
-require_once __DIR__ . '/pix_api.php';
-require_once __DIR__ . '/tracker.php';
-require_once __DIR__ . '/transaction_store.php';
+    /** Consulta cobranca imediata (GET /cob/{txid}) */
+    public function consultarCobranca(string $txid, ?int $revisao = null): array
+    {
+        $this->validarTxid($txid);
+        $query = $revisao !== null ? "?revisao={$revisao}" : '';
+        return $this->request('GET', "/cob/{$txid}{$query}");
+    }
 
-if (!class_exists('PixApi')) {
-    http_response_code(500);
-    echo json_encode(['erro' => 'A classe PixApi nao foi carregada. Verifique o conteudo de api/pix_api.php.'], JSON_UNESCAPED_UNICODE);
-    exit;
-}
+    /** Lista cobrancas imediatas (GET /cob) */
+    public function listarCobrancas(array $params): array
+    {
+        $this->validarParamsData($params);
+        return $this->request('GET', '/cob?' . http_build_query($params));
+    }
 
-global $CHAVE_PIX;
+    // -------------------------------------------------------------------------
+    // Cobrancas com vencimento (/cobv)
+    // -------------------------------------------------------------------------
 
-if (empty(trim($CHAVE_PIX ?? ''))) {
-    http_response_code(500);
-    echo json_encode(['erro' => 'Chave PIX nao configurada em var.php ($CHAVE_PIX).']);
-    exit;
-}
+    /** Cria cobranca com vencimento (PUT /cobv/{txid}) */
+    public function criarCobrancaVencimento(string $txid, array $dados): array
+    {
+        $this->validarTxid($txid);
+        return $this->request('PUT', "/cobv/{$txid}", $dados);
+    }
 
-$input = json_decode(file_get_contents('php://input'), true) ?? [];
+    /** Atualiza cobranca com vencimento (PATCH /cobv/{txid}) */
+    public function atualizarCobrancaVencimento(string $txid, array $dados): array
+    {
+        $this->validarTxid($txid);
+        return $this->request('PATCH', "/cobv/{$txid}", $dados);
+    }
 
-// Validar valor
-$valor = round((float)($input['valor'] ?? 0), 2);
-if ($valor < 0.01) {
-    http_response_code(400);
-    echo json_encode(['erro' => 'Informe um valor minimo de R$ 0,01.']);
-    exit;
-}
+    /** Consulta cobranca com vencimento (GET /cobv/{txid}) */
+    public function consultarCobrancaVencimento(string $txid, ?int $revisao = null): array
+    {
+        $this->validarTxid($txid);
+        $query = $revisao !== null ? "?revisao={$revisao}" : '';
+        return $this->request('GET', "/cobv/{$txid}{$query}");
+    }
 
-// Sanitizar descricao
-$descricao = mb_substr(trim($input['descricao'] ?? ''), 0, 140);
+    /** Lista cobrancas com vencimento (GET /cobv) */
+    public function listarCobrancasVencimento(array $params): array
+    {
+        $this->validarParamsData($params);
+        return $this->request('GET', '/cobv?' . http_build_query($params));
+    }
 
-// Montar body da cobranca PIX
-$dados = [
-    'calendario' => ['expiracao' => 3600],
-    'valor'      => ['original' => number_format($valor, 2, '.', '')],
-    'chave'      => trim($CHAVE_PIX),
-];
-if ($descricao !== '') {
-    $dados['solicitacaoPagador'] = $descricao;
-}
+    // -------------------------------------------------------------------------
+    // PIX recebidos (/pix)
+    // -------------------------------------------------------------------------
 
-try {
-    $pix      = new PixApi();
-    $response = $pix->criarCobranca($dados);
+    /** Consulta um PIX recebido pelo e2eid (GET /pix/{e2eid}) */
+    public function consultarPix(string $e2eid): array
+    {
+        $this->validarE2eid($e2eid);
+        return $this->request('GET', "/pix/{$e2eid}");
+    }
 
-    $pixCopiaECola = $response['pixCopiaECola']
-        ?? $response['brcode']
-        ?? $response['qrcode']
-        ?? $response['emv']
-        ?? $response['loc']['pixCopiaECola']
-        ?? null;
+    /** Lista PIX recebidos (GET /pix) */
+    public function listarPix(array $params): array
+    {
+        $this->validarParamsData($params);
+        return $this->request('GET', '/pix?' . http_build_query($params));
+    }
 
-    $txid = $response['txid'] ?? null;
+    // -------------------------------------------------------------------------
+    // Devolucoes (/pix/{e2eid}/devolucao/{id})
+    // -------------------------------------------------------------------------
 
-    // -- Montar dados de tracking ---------------------------------------------
-    $trackData = [
-        'txid'         => $txid,
-        'valor'        => $response['valor']['original'] ?? number_format($valor, 2, '.', ''),
-        'descricao'    => $descricao,
-        'createdAt'    => date('Y-m-d H:i:s'),
-        'ua'           => $_SERVER['HTTP_USER_AGENT'] ?? '',
-        'url'          => $input['url']          ?? '',
-        'email'        => $input['email']        ?? '',
-        'phone'        => $input['phone']        ?? '',
-        'document'     => $input['document']     ?? '',
-        'nome'         => $input['nome']         ?? '',
-        'fbc'          => $input['fbc']          ?? '',
-        'fbp'          => $input['fbp']          ?? '',
-        'utm_source'   => $input['utm_source']   ?? '',
-        'utm_medium'   => $input['utm_medium']   ?? '',
-        'utm_campaign' => $input['utm_campaign'] ?? '',
-        'utm_content'  => $input['utm_content']  ?? '',
-        'utm_term'     => $input['utm_term']     ?? '',
-        'src'          => $input['src']          ?? '',
-        'sck'          => $input['sck']          ?? '',
-        'status'       => 'waiting_paid',
-    ];
+    /** Solicita devolucao (PUT /pix/{e2eid}/devolucao/{id}) */
+    public function solicitarDevolucao(string $e2eid, string $idDevolucao, array $dados): array
+    {
+        $this->validarE2eid($e2eid);
+        $idDevolucao = $this->sanitizarId($idDevolucao);
+        return $this->request('PUT', "/pix/{$e2eid}/devolucao/{$idDevolucao}", $dados);
+    }
 
-    // -- Persiste transacao para o webhook usar depois (Upstash Redis) --------
-    if ($txid) {
-        try {
-            (new TransactionStore())->salvar($txid, $trackData);
-        } catch (Throwable $e) {
-            // Nao derruba a resposta ao usuario por falha de persistencia -
-            // mas loga para voce conseguir ver isso nos Logs da Vercel.
-            error_log('Falha ao salvar transacao no Upstash: ' . $e->getMessage());
+    /** Consulta devolucao (GET /pix/{e2eid}/devolucao/{id}) */
+    public function consultarDevolucao(string $e2eid, string $idDevolucao): array
+    {
+        $this->validarE2eid($e2eid);
+        $idDevolucao = $this->sanitizarId($idDevolucao);
+        return $this->request('GET', "/pix/{$e2eid}/devolucao/{$idDevolucao}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Webhook (/webhook/{chave})
+    // -------------------------------------------------------------------------
+
+    /** Configura webhook para uma chave PIX (PUT /webhook/{chave}) */
+    public function configurarWebhook(string $chave, string $webhookUrl): array
+    {
+        if (!filter_var($webhookUrl, FILTER_VALIDATE_URL)) {
+            throw new InvalidArgumentException('URL do webhook invalida.');
+        }
+        $chave = urlencode($chave);
+        return $this->request('PUT', "/webhook/{$chave}", ['webhookUrl' => $webhookUrl]);
+    }
+
+    /** Consulta webhook de uma chave PIX (GET /webhook/{chave}) */
+    public function consultarWebhook(string $chave): array
+    {
+        $chave = urlencode($chave);
+        return $this->request('GET', "/webhook/{$chave}");
+    }
+
+    /** Remove webhook de uma chave PIX (DELETE /webhook/{chave}) */
+    public function removerWebhook(string $chave): array
+    {
+        $chave = urlencode($chave);
+        return $this->request('DELETE', "/webhook/{$chave}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Payload Locations (/loc)
+    // -------------------------------------------------------------------------
+
+    /** Cria location do payload (POST /loc) */
+    public function criarLocation(string $tipoCob): array
+    {
+        if (!in_array($tipoCob, ['cob', 'cobv'], true)) {
+            throw new InvalidArgumentException('tipoCob deve ser "cob" ou "cobv".');
+        }
+        return $this->request('POST', '/loc', ['tipoCob' => $tipoCob]);
+    }
+
+    /** Consulta location pelo id (GET /loc/{id}) */
+    public function consultarLocation(int $id): array
+    {
+        return $this->request('GET', "/loc/{$id}");
+    }
+
+    // -------------------------------------------------------------------------
+    // Nucleo HTTP com mTLS
+    // -------------------------------------------------------------------------
+
+    /**
+     * @param string      $method   GET|POST|PUT|PATCH|DELETE
+     * @param string      $path     Path relativo (ex: /cob)
+     * @param array|null  $body     Dados do corpo da requisicao
+     * @param string      $bodyType 'json' (padrao) ou 'form'
+     * @param bool        $auth     Se deve enviar Bearer token
+     * @return array
+     */
+    private function request(
+        string $method,
+        string $path,
+        ?array $body = null,
+        string $bodyType = 'json',
+        bool $auth = true
+    ): array {
+        $url = $this->baseUrl . $path;
+        $ch  = curl_init($url);
+
+        $headers = [];
+
+        if ($auth) {
+            $token     = $this->getToken();
+            $headers[] = "Authorization: Bearer {$token}";
+        }
+
+        if ($bodyType === 'json') {
+            $headers[] = 'Content-Type: application/json';
+            $headers[] = 'Accept: application/json';
+        } else {
+            $headers[] = 'Content-Type: application/x-www-form-urlencoded';
+        }
+
+        // CA root da ONZ Software (extraida do PFX - necessaria pois o servidor usa CA privada)
+        $caBundle = realpath($this->caPath);
+        if ($caBundle !== false) {
+            $caBundle = str_replace('\\', '/', $caBundle);
+        } else {
+            $caBundle = null;
+        }
+
+        $curlOpts = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 30,
+            CURLOPT_HTTPHEADER     => $headers,
+            CURLOPT_CUSTOMREQUEST  => $method,
+            CURLOPT_SSL_VERIFYPEER => false,
+            CURLOPT_SSL_VERIFYHOST => 0,
+            // mTLS
+            CURLOPT_SSLCERT        => $this->certPath,
+            CURLOPT_SSLKEY         => $this->keyPath,
+            CURLOPT_SSLKEYPASSWD   => $this->keyPassword,
+        ];
+
+        if ($caBundle !== null) {
+            $curlOpts[CURLOPT_CAINFO] = $caBundle;
+        }
+
+        curl_setopt_array($ch, $curlOpts);
+
+        if ($body !== null && in_array($method, ['POST', 'PUT', 'PATCH'], true)) {
+            $payload = $bodyType === 'json' ? json_encode($body) : http_build_query($body);
+            curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
+        }
+
+        $responseBody = curl_exec($ch);
+        $httpCode     = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $curlError    = curl_error($ch);
+        curl_close($ch);
+
+        if ($curlError) {
+            throw new RuntimeException("Erro cURL: {$curlError}");
+        }
+
+        $decoded = json_decode($responseBody, true);
+
+        if ($httpCode >= 400) {
+            $msg = is_array($decoded) ? json_encode($decoded) : $responseBody;
+            throw new RuntimeException("HTTP {$httpCode}: {$msg}", $httpCode);
+        }
+
+        return is_array($decoded) ? $decoded : [];
+    }
+
+    // -------------------------------------------------------------------------
+    // Validacoes de entrada
+    // -------------------------------------------------------------------------
+
+    private function validarTxid(string $txid): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9]{26,35}$/', $txid)) {
+            throw new InvalidArgumentException('txid invalido: deve conter 26 a 35 caracteres alfanumericos.');
         }
     }
 
-    // -- Dispara InitiateCheckout (FB) + waiting_paid (UTMify) ----------------
-    (new Tracker())->initiateCheckout($trackData);
+    private function validarE2eid(string $e2eid): void
+    {
+        if (!preg_match('/^[a-zA-Z0-9]{32}$/', $e2eid)) {
+            throw new InvalidArgumentException('e2eid invalido: deve conter exatamente 32 caracteres alfanumericos.');
+        }
+    }
 
-    echo json_encode([
-        'txid'          => $txid,
-        'status'        => $response['status']                  ?? null,
-        'valor'         => $trackData['valor'],
-        'expiracao'     => $response['calendario']['expiracao'] ?? 3600,
-        'location'      => $response['location']                ?? ($response['loc']['location'] ?? null),
-        'pixCopiaECola' => $pixCopiaECola,
-        '_tracking'     => [
-            'utm_source'   => $trackData['utm_source'],
-            'utm_medium'   => $trackData['utm_medium'],
-            'utm_campaign' => $trackData['utm_campaign'],
-            'utm_content'  => $trackData['utm_content'],
-            'utm_term'     => $trackData['utm_term'],
-            'src'          => $trackData['src'],
-            'sck'          => $trackData['sck'],
-            'fbc'          => $trackData['fbc'],
-            'fbp'          => $trackData['fbp'],
-        ],
-    ], JSON_UNESCAPED_UNICODE);
+    private function sanitizarId(string $id): string
+    {
+        if (!preg_match('/^[a-zA-Z0-9]{1,35}$/', $id)) {
+            throw new InvalidArgumentException('Id invalido.');
+        }
+        return $id;
+    }
 
-} catch (RuntimeException $e) {
-    $code = (int)$e->getCode();
-    http_response_code($code >= 400 ? $code : 500);
-    echo json_encode(['erro' => $e->getMessage()]);
-} catch (Throwable $e) {
-    http_response_code(500);
-    echo json_encode([
-        'erro' => 'Erro interno ao gerar PIX: ' . $e->getMessage(),
-        'arquivo' => basename($e->getFile()) . ':' . $e->getLine(),
-    ], JSON_UNESCAPED_UNICODE);
+    private function validarParamsData(array $params): void
+    {
+        foreach (['inicio', 'fim'] as $campo) {
+            if (isset($params[$campo]) && !$this->isISO8601($params[$campo])) {
+                throw new InvalidArgumentException("Parametro '{$campo}' deve ser uma data/hora no formato RFC 3339.");
+            }
+        }
+        if (isset($params['cpf']) && !preg_match('/^\d{11}$/', $params['cpf'])) {
+            throw new InvalidArgumentException('CPF invalido.');
+        }
+        if (isset($params['cnpj']) && !preg_match('/^\d{14}$/', $params['cnpj'])) {
+            throw new InvalidArgumentException('CNPJ invalido.');
+        }
+        if (isset($params['cpf'], $params['cnpj'])) {
+            throw new InvalidArgumentException('Nao e possivel filtrar por CPF e CNPJ simultaneamente.');
+        }
+    }
+
+    private function isISO8601(string $value): bool
+    {
+        return (bool)preg_match('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?(Z|[+-]\d{2}:\d{2})$/', $value);
+    }
 }
