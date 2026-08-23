@@ -226,10 +226,19 @@ class Tracker
 
         // Log vai para os Logs da Vercel (Functions → Logs), não mais para arquivo,
         // já que não há disco persistente no ambiente serverless.
+        //
+        // Inclui os próprios utms enviados nesta chamada - assim dá pra ver
+        // direto no log se a campanha estava presente ANTES de mandar pra
+        // UTMify (se já chegou vazia aqui, o problema é no getUTMs()/frontend
+        // ou na leitura do Upstash; se chegou certa mas a UTMify não gravou,
+        // o problema está na resposta/validação da API deles).
         error_log(sprintf(
-            '[Tracker/UTMify] status=%s txid=%s http=%s resp=%s',
+            '[Tracker/UTMify] status=%s txid=%s utm_source=%s utm_campaign=%s utm_medium=%s http=%s resp=%s',
             $status,
             $data['txid'] ?? '-',
+            $trackingParameters['utm_source']   ?? 'null',
+            $trackingParameters['utm_campaign'] ?? 'null',
+            $trackingParameters['utm_medium']   ?? 'null',
             $httpCode,
             $curlErr ?: $resp
         ));
