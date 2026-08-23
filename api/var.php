@@ -22,7 +22,7 @@ $FB_PIXELS = [
 ];
  
 // ── UTMify ────────────────────────────────────────────────────────────────────
-$UTMIFY_API_TOKEN = "grPOoJRIww4P97updndeR0Oc2x5ySV3UvClr";
+$UTMIFY_API_TOKEN = "Eeglb8LM3faVWX7cNbiEsS5aNII47O3hnuny";
 $NOME_PRODUTO = "01 Produto Digital";
 $ID_PRODUTO   = "produto-001";
  
