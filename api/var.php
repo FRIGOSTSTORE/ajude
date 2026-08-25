@@ -6,6 +6,15 @@ $CLIENT_ID = "00011193760124794000127";
 $CLIENT_SECRET = "mNhMDcwNTItYTc4Ni00MjE1LThlOGEtZ";
  
 $CHAVE_PIX = "fcd47d4c-bd68-440a-8480-9c5a6c184abc";
+
+// ── Prefixo de txid (conta BassPago compartilhada) ────────────────────────────
+// Esta conta BassPago é usada por mais de um projeto (Norisk, site-elseve,
+// ajude-main). O webhook é único por conta, então qualquer projeto pode
+// receber notificações de txid de outro. Este prefixo é gravado no início
+// de todo txid gerado por ESTE projeto (gerar_pix.php) e é conferido no
+// webhook (webhook_pix.php) antes de processar qualquer pagamento — segue o
+// mesmo padrão do prefixo NRK usado pelo Norisk.
+$TXID_PREFIX = "AJD";
  
 // ── Facebook Conversions API ──────────────────────────────────────────────────
 // Todos os Pixels que devem receber os eventos da Conversions API.
