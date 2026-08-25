@@ -114,9 +114,26 @@ if ($descricao !== '') {
     $dados['solicitacaoPagador'] = $descricao;
 }
 
+// -- Gera txid proprio com prefixo do projeto -------------------------------
+// A conta BassPago e compartilhada com outros projetos (mesmo mTLS/gateway).
+// Deixar o PSP gerar o txid (POST /cob) tornaria impossivel saber, so pelo
+// txid, de qual projeto veio um pagamento. Por isso definimos o txid aqui
+// (PUT /cob/{txid}) sempre comecando com $TXID_PREFIX - o webhook usa esse
+// prefixo pra descartar na hora qualquer notificacao que nao seja deste
+// projeto, em vez de processar e reportar pra UTMify por engano.
+global $TXID_PREFIX;
+$prefixo = preg_replace('/[^a-zA-Z0-9]/', '', (string)($TXID_PREFIX ?? 'AJD'));
+if ($prefixo === '') {
+    $prefixo = 'AJD';
+}
+$restante = 32 - strlen($prefixo); // total fica em 32 chars (dentro de 26-35)
+$aleatorio = substr(bin2hex(random_bytes((int)ceil($restante / 2))), 0, $restante);
+$txidGerado = $prefixo . $aleatorio;
+
 try {
     $pix      = new PixApi();
-    $response = $pix->criarCobranca($dados);
+    $response = $pix->criarCobrancaComTxid($txidGerado, $dados);
+    $response['txid'] = $response['txid'] ?? $txidGerado; // BASSPAGO normalmente ecoa o txid enviado
 
     $pixCopiaECola = $response['pixCopiaECola']
         ?? $response['brcode']
