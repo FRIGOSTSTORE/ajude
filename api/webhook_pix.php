@@ -23,8 +23,16 @@ error_reporting(E_ALL & ~E_WARNING & ~E_NOTICE & ~E_DEPRECATED);
 
 require_once __DIR__ . '/tracker.php';
 require_once __DIR__ . '/transaction_store.php';
+require_once __DIR__ . '/var.php';
 
 header('Content-Type: application/json; charset=utf-8');
+
+// A conta BASSPAGO e compartilhada com outros projetos (Norisk, site-elseve
+// etc.) e o webhook e por conta, nao por produto: este endpoint pode receber
+// notificacao de txid que nao e de nenhum pedido daqui. $TXID_PREFIX (var.php)
+// identifica os txids gerados por ESTE projeto (ver gerar_pix.php).
+global $TXID_PREFIX;
+$txidPrefix = $TXID_PREFIX ?? 'AJD';
 
 // Só aceita POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -59,11 +67,28 @@ foreach ($itensPix as $pix) {
     $txid = $pix['txid'] ?? null;
     if (!$txid) continue;
 
+    // Dono do pedido, checagem 1: prefixo do txid.
+    // Se o txid nao comeca com o prefixo deste projeto, e de outro projeto
+    // na mesma conta BASSPAGO - descarta sem processar.
+    if (stripos($txid, $txidPrefix) !== 0) {
+        error_log("[webhook_pix] txid={$txid} nao pertence a este projeto (prefixo != {$txidPrefix}), ignorando");
+        continue;
+    }
+
     // Carrega dados da transação salva na criação do QR Code
     try {
         $txData = $store->carregar($txid);
     } catch (Throwable $e) {
         $txData = [];
+    }
+
+    // Dono do pedido, checagem 2: o pedido precisa existir no registro local.
+    // Mesmo com o prefixo certo, sem isso um txid nunca gerado por este
+    // projeto (colisao, replay, etc.) seria processado e reportado pra
+    // UTMify mesmo assim. Sem $txData nao ha o que reportar.
+    if (empty($txData)) {
+        error_log("[webhook_pix] txid={$txid} tem prefixo certo mas nao existe no registro local, ignorando");
+        continue;
     }
 
     // Idempotência: ignora se já processado
